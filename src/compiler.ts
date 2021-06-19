@@ -78,8 +78,8 @@ function error(message: string) {
 }
 
 function errorAt(token: Token | null, message: string) {
-    if (parser.panic_mode) return
     if (token === null) throw "Token should not be null"
+    if (parser.panic_mode) return
     parser.panic_mode = true
     console.warn(`[Line ${token.line}] Error : ${message}`)
     parser.had_error = true
