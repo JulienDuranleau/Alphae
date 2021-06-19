@@ -20,7 +20,7 @@ export const enum TokenType {
     PRINT, RETURN, SUPER, THIS,
     TRUE, VAR, WHILE,
 
-    ERROR, EOF
+    ERROR, EOF, START_OF_FILE
 }
 
 export type Token = {
@@ -28,63 +28,58 @@ export type Token = {
     start: number,
     length: number,
     line: number,
+    lexeme: string,
 }
 
-const scanner = {
+export const scanner = {
     start: 0, // start of current lexeme
     current: 0, // current "cursor" position in source
     line: 1,
     source: "",
 }
 
-const logger = new Logger("Scanner", "line type lexeme")
+let line = -1
 
-function expression() {
+const logger = new Logger("Scanner Tokens", "Line Type Lexeme")
 
-}
-
-function consume(type: TokenType, error_message: string) {
-
-}
-
-export function scanToken(): Token {
-    skipWhitespace()
+export function scan_token(): Token {
+    skip_whitespace()
 
     scanner.start = scanner.current
 
-    if (isAtEnd()) return makeToken(TokenType.EOF)
+    if (is_at_end()) return make_token(TokenType.EOF)
 
     const c = advance()
 
     switch (c) {
-        case '(': return makeToken(TokenType.LEFT_PAREN)
-        case ')': return makeToken(TokenType.RIGHT_PAREN)
-        case '{': return makeToken(TokenType.LEFT_BRACE)
-        case '}': return makeToken(TokenType.RIGHT_BRACE)
-        case ';': return makeToken(TokenType.SEMICOLON)
-        case ',': return makeToken(TokenType.COMMA)
-        case '.': return makeToken(TokenType.DOT)
-        case '-': return makeToken(TokenType.MINUS)
-        case '+': return makeToken(TokenType.PLUS)
-        case '/': return makeToken(TokenType.SLASH)
-        case '*': return makeToken(TokenType.STAR)
+        case '(': return make_token(TokenType.LEFT_PAREN)
+        case ')': return make_token(TokenType.RIGHT_PAREN)
+        case '{': return make_token(TokenType.LEFT_BRACE)
+        case '}': return make_token(TokenType.RIGHT_BRACE)
+        case ';': return make_token(TokenType.SEMICOLON)
+        case ',': return make_token(TokenType.COMMA)
+        case '.': return make_token(TokenType.DOT)
+        case '-': return make_token(TokenType.MINUS)
+        case '+': return make_token(TokenType.PLUS)
+        case '/': return make_token(TokenType.SLASH)
+        case '*': return make_token(TokenType.STAR)
 
-        case '!': return makeToken(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
-        case '=': return makeToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL);
-        case '<': return makeToken(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
-        case '>': return makeToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
+        case '!': return make_token(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
+        case '=': return make_token(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL);
+        case '<': return make_token(match('=') ? TokenType.LESS_EQUAL : TokenType.LESS);
+        case '>': return make_token(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
 
         case '"': return string()
 
         default:
-            if (isDigit(c)) return number()
-            if (isAlpha(c)) return identifier()
+            if (is_digit(c)) return number()
+            if (is_alpha(c)) return identifier()
     }
 
-    return errorToken("Unexpected character.")
+    return error_token("Unexpected character.")
 }
 
-function skipWhitespace() {
+function skip_whitespace() {
     while (true) {
         const c = peek()
 
@@ -99,8 +94,8 @@ function skipWhitespace() {
                 advance()
                 break
             case '/':
-                if (peekNext() === '/') {
-                    while (peek() !== "\n" && !isAtEnd()) {
+                if (peek_next() === '/') {
+                    while (peek() !== "\n" && !is_at_end()) {
                         advance()
                     }
                 } else {
@@ -114,93 +109,70 @@ function skipWhitespace() {
 }
 
 function number(): Token {
-    while (isDigit(peek())) advance()
+    while (is_digit(peek())) advance()
 
     // decimals
-    if (peek() === '.' && isDigit(peekNext())) {
+    if (peek() === '.' && is_digit(peek_next())) {
         advance()
-        while (isDigit(peek())) advance()
+        while (is_digit(peek())) advance()
     }
 
-    return makeToken(TokenType.NUMBER)
+    return make_token(TokenType.NUMBER)
 }
 
 function string(): Token {
-    while (peek() !== '"' && !isAtEnd()) {
+    while (peek() !== '"' && !is_at_end()) {
         if (peek() === '\n') scanner.line++
         advance()
     }
 
-    if (isAtEnd()) return errorToken("Unterminated string")
+    if (is_at_end()) return error_token("Unterminated string")
 
     // Reached closing quote
     advance()
-    return makeToken(TokenType.STRING)
+    return make_token(TokenType.STRING)
 }
 
 function identifier(): Token {
-    while (isAlpha(peek()) || isDigit(peek())) advance()
-    return makeToken(findIdentifierType())
+    while (is_alpha(peek()) || is_digit(peek())) advance()
+    return make_token(find_identifier_type())
 }
 
-function findIdentifierType(): TokenType {
-    /*
-    AND, 
-    CLASS, 
-    ELSE, 
-
-    FALSE,
-    FOR, 
-    FUN, 
-
-    IF, 
-    NIL, 
-    OR,
-    PRINT, 
-    RETURN, 
-    SUPER,
-
-    THIS,
-    TRUE, 
-    
-    VAR, 
-    WHILE,
-    */
-
+function find_identifier_type(): TokenType {
     switch (scanner.source[scanner.start]) {
-        case 'a': return checkKeyword(1, 2, "nd", TokenType.AND)
-        case 'c': return checkKeyword(1, 4, "lass", TokenType.CLASS)
-        case 'e': return checkKeyword(1, 3, "lse", TokenType.ELSE)
+        case 'a': return check_keyword(1, 2, "nd", TokenType.AND)
+        case 'c': return check_keyword(1, 4, "lass", TokenType.CLASS)
+        case 'e': return check_keyword(1, 3, "lse", TokenType.ELSE)
         case 'f':
             if (scanner.current - scanner.start > 1) {
                 switch (scanner.source[scanner.start + 1]) {
-                    case 'a': return checkKeyword(2, 3, "lse", TokenType.FALSE)
-                    case 'o': return checkKeyword(2, 1, "r", TokenType.FOR)
-                    case 'u': return checkKeyword(2, 1, "n", TokenType.FUN)
+                    case 'a': return check_keyword(2, 3, "lse", TokenType.FALSE)
+                    case 'o': return check_keyword(2, 1, "r", TokenType.FOR)
+                    case 'u': return check_keyword(2, 1, "n", TokenType.FUN)
                 }
             }
             break
-        case 'i': return checkKeyword(1, 1, "f", TokenType.IF)
-        case 'n': return checkKeyword(1, 2, "il", TokenType.NIL)
-        case 'o': return checkKeyword(1, 1, "r", TokenType.OR)
-        case 'p': return checkKeyword(1, 4, "rint", TokenType.PRINT)
-        case 'r': return checkKeyword(1, 5, "eturn", TokenType.RETURN)
-        case 's': return checkKeyword(1, 4, "uper", TokenType.SUPER)
+        case 'i': return check_keyword(1, 1, "f", TokenType.IF)
+        case 'n': return check_keyword(1, 2, "il", TokenType.NIL)
+        case 'o': return check_keyword(1, 1, "r", TokenType.OR)
+        case 'p': return check_keyword(1, 4, "rint", TokenType.PRINT)
+        case 'r': return check_keyword(1, 5, "eturn", TokenType.RETURN)
+        case 's': return check_keyword(1, 4, "uper", TokenType.SUPER)
         case 't':
             if (scanner.current - scanner.start > 1) {
                 switch (scanner.source[scanner.start + 1]) {
-                    case 'h': return checkKeyword(2, 2, "is", TokenType.THIS)
-                    case 'r': return checkKeyword(2, 2, "ue", TokenType.TRUE)
+                    case 'h': return check_keyword(2, 2, "is", TokenType.THIS)
+                    case 'r': return check_keyword(2, 2, "ue", TokenType.TRUE)
                 }
             }
             break
-        case 'v': return checkKeyword(1, 2, "ar", TokenType.VAR)
-        case 'w': return checkKeyword(1, 4, "hile", TokenType.WHILE)
+        case 'v': return check_keyword(1, 2, "ar", TokenType.VAR)
+        case 'w': return check_keyword(1, 4, "hile", TokenType.WHILE)
     }
     return TokenType.IDENTIFIER
 }
 
-function checkKeyword(start: number, length: number, rest: string, type: TokenType): TokenType {
+function check_keyword(start: number, length: number, rest: string, type: TokenType): TokenType {
     let is_same_length = scanner.current - scanner.start == start + length
 
     if (is_same_length && rest === scanner.source.substring(scanner.start + start, scanner.current)) {
@@ -210,11 +182,11 @@ function checkKeyword(start: number, length: number, rest: string, type: TokenTy
     return TokenType.IDENTIFIER
 }
 
-function isAlpha(c: string): boolean {
+function is_alpha(c: string): boolean {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c === '_'
 }
 
-function isDigit(c: string): boolean {
+function is_digit(c: string): boolean {
     return c >= '0' && c <= '9'
 }
 
@@ -222,13 +194,13 @@ function peek(): string {
     return scanner.source[scanner.current]
 }
 
-function peekNext(): string {
-    if (isAtEnd()) return '\0'
+function peek_next(): string {
+    if (is_at_end()) return '\0'
     return scanner.source[scanner.current + 1]
 }
 
 function match(c: string): boolean {
-    if (isAtEnd()) return false
+    if (is_at_end()) return false
     if (scanner.source[scanner.current] !== c) return false
 
     scanner.current += 1
@@ -240,27 +212,45 @@ function advance(): string {
     return scanner.source[scanner.current - 1]
 }
 
-function isAtEnd(): boolean {
+function is_at_end(): boolean {
     return scanner.source[scanner.current] === "\0"
 }
 
-function makeToken(type: TokenType): Token {
+function make_token(type: TokenType): Token {
+    let len = scanner.current - scanner.start
+
     const token: Token = {
         type: type,
         start: scanner.start,
-        length: scanner.current - scanner.start,
+        length: len,
         line: scanner.line,
+        lexeme: scanner.source.substr(scanner.start, len),
     }
+
+    debug_token(token)
+
     return token
 }
 
-function errorToken(msg: string): Token {
-    // TODO
+function debug_token(token: Token) {
+    if (token.line !== line) {
+        logger.log(`${token.line.toString().padStart(4, " ")} `)
+        line = token.line
+    } else {
+        logger.log("   | ")
+    }
+
+    let lexeme = scanner.source.substr(token.start, token.length)
+    logger.log_nl(`${token.type.toString().padStart(3, " ")}  ${lexeme}`)
+}
+
+function error_token(msg: string): Token {
     const token: Token = {
         type: TokenType.ERROR,
         length: msg.length,
         line: scanner.line,
-        start: scanner.current
+        start: scanner.current,
+        lexeme: msg,
     }
     return token
 }

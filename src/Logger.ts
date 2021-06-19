@@ -5,7 +5,7 @@ export default class Logger {
 
     constructor(name: string, header: string | undefined = undefined) {
         this.tag = document.createElement("div")
-        this.tag.classList.add(name)
+        this.tag.classList.add(name.replace(/ /, "-").toLowerCase())
         this.tag.classList.add("code")
         document.body.append(this.tag)
 

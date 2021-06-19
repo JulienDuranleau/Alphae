@@ -29,6 +29,6 @@ export function write_value_array(array: ValueArray, byte: number) {
     array.count += 1
 }
 
-export function printValue(value: Value): string {
+export function print_value(value: Value): string {
     return value.toString()
 }

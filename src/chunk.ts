@@ -4,13 +4,13 @@ import { MIN_ARRAY_SIZE, reallocate_uint8, reallocate_uint32 } from "./memory.js
 import { create_value_array, init_value_array, Value, ValueArray, write_value_array } from "./value.js"
 
 export const enum OpCode {
-    OP_CONSTANT,
-    OP_RETURN,
-    OP_ADD,
-    OP_SUBTRACT,
-    OP_MULTIPLY,
-    OP_DIVIDE,
-    OP_NEGATE,
+    CONSTANT,
+    RETURN,
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDE,
+    NEGATE,
 }
 
 export type Chunk = {
@@ -48,7 +48,7 @@ export function write_chunk(chunk: Chunk, byte: number, line: number) {
     chunk.count += 1
 }
 
-export function addConstant(chunk: Chunk, value: Value): number {
+export function add_constant(chunk: Chunk, value: Value): number {
     write_value_array(chunk.constants, value)
     return chunk.constants.count - 1
 }
